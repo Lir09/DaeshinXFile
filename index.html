@@ -1,0 +1,885 @@
+﻿<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>시간표 검색</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        margin: 0;
+        padding: 28px 18px;
+        background: #ffffff;
+        color: #111827; /* 거의 검정 */
+      }
+
+      h1 {
+        margin: 0 auto 18px;
+        max-width: 1100px;
+        font-size: 22px;
+        letter-spacing: -0.2px;
+      }
+
+      /* 전체 컨텐츠 폭 정리 */
+      .tabs,
+      .tab-panel {
+        max-width: 1100px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Tabs */
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        padding: 6px;
+        background: #f8fafc; /* 아주 옅은 회색 */
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+      }
+
+      .tab-btn {
+        border: 1px solid transparent;
+        background: transparent;
+        color: #374151;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .tab-btn:hover {
+        background: #ffffff;
+        border-color: #e5e7eb;
+      }
+
+      .tab-btn.active {
+        background: #111827;
+        color: #ffffff;
+        border-color: #111827;
+      }
+
+      /* Panels */
+      .tab-panel {
+        display: none;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+
+      /* Row */
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      /* Inputs */
+      input {
+        padding: 11px 12px;
+        font-size: 15px;
+        width: min(520px, 96vw);
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #ffffff;
+        color: #111827;
+        outline: none;
+      }
+
+      input::placeholder {
+        color: #9ca3af;
+      }
+
+      input:focus {
+        border-color: #111827;
+        box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.12);
+      }
+
+      /* Buttons */
+      button {
+        padding: 11px 12px;
+        font-size: 14px;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
+        color: #111827;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #f9fafb;
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      /* hint/meta */
+      .hint {
+        color: #6b7280;
+        margin-top: 10px;
+        font-size: 13px;
+      }
+
+      .results {
+        margin-top: 14px;
+      }
+
+      .meta {
+        color: #374151;
+        margin-bottom: 10px;
+      }
+
+      .small {
+        font-size: 12px;
+        color: #6b7280;
+      }
+
+      /* Card */
+      .card {
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 14px;
+        margin-top: 14px;
+        background: #ffffff;
+        box-shadow: 0 8px 24px rgba(17, 24, 39, 0.06);
+      }
+
+      .actions {
+        margin: 10px 0 12px;
+      }
+
+      /* list buttons */
+      .list button {
+        margin: 6px 8px 0 0;
+      }
+
+      /* Table */
+      table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #ffffff;
+      }
+
+      th,
+      td {
+        border-right: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 10px 10px;
+        vertical-align: top;
+      }
+
+      th:last-child,
+      td:last-child {
+        border-right: 0;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      th {
+        background: #f9fafb;
+        color: #374151;
+        font-weight: 700;
+        font-size: 13px;
+      }
+
+      td {
+        height: 74px;
+        font-size: 13px;
+        color: #111827;
+      }
+
+      /* hover로 가독성 */
+      tbody tr:hover td {
+        background: #fafafa;
+      }
+
+      /* overlap 강조(노란색이 너무 튀지 않게) */
+      .cell-overlap {
+        background: #fff7d6; /* 연한 크림 */
+      }
+
+      /* subject/teacher */
+      .subject-name {
+        font-weight: 700;
+      }
+
+      .details {
+        margin-top: 6px;
+      }
+
+      .location-chip {
+        display: inline-block;
+        padding: 3px 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        font-size: 12px;
+        color: #374151;
+        background: #ffffff;
+        margin-right: 6px;
+      }
+
+      .teacher-name {
+        font-size: 12px;
+        color: #6b7280;
+      }
+
+      /* Similar item separator */
+      .similar-item {
+        border-top: 1px dashed #e5e7eb;
+        margin-top: 12px;
+        padding-top: 12px;
+      }
+
+      /* name link button */
+      .name-link-btn {
+        border: 0;
+        background: transparent;
+        padding: 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: #2563eb;
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
+      .name-link-btn:hover {
+        color: #1d4ed8;
+      }
+
+      /* Compare grid */
+      .compare-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      @media (min-width: 960px) {
+        .compare-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>시간표 검색</h1>
+
+    <div class="tabs">
+      <button id="tabSearch" class="tab-btn active" type="button">
+        학생 검색
+      </button>
+      <button id="tabDirectCompare" class="tab-btn" type="button">
+        직접 비교
+      </button>
+    </div>
+
+    <section id="panelSearch" class="tab-panel active">
+      <div class="row">
+        <input
+          id="q"
+          type="text"
+          placeholder="이름 입력을 입력하시오.. "
+          autocomplete="off"
+        />
+        <button id="btn">검색</button>
+        <button id="btnClear">초기화</button>
+      </div>
+
+      <div id="status" class="hint"></div>
+      <div id="results" class="results"></div>
+    </section>
+
+    <section id="panelDirectCompare" class="tab-panel">
+      <div class="row">
+        <input
+          id="qBase"
+          type="text"
+          placeholder="내 이름"
+          autocomplete="off"
+        />
+        <input
+          id="qTarget"
+          type="text"
+          placeholder="비교할 상대 이름"
+          autocomplete="off"
+        />
+        <button id="btnCompareDirect">두 사람 비교</button>
+        <button id="btnCompareClear">초기화</button>
+      </div>
+      <div class="hint">이름이 여러 명이면 선택 버튼이 나타납니다.</div>
+      <div id="directStatus" class="hint"></div>
+      <div id="directPicker" class="results"></div>
+      <div id="directResults" class="results"></div>
+    </section>
+
+    <script>
+      let allStudents = [];
+      let DAYS = ["월", "화", "수", "목", "금"];
+      const selectedDirect = { base: null, target: null };
+
+      function switchTab(tab) {
+        const isSearch = tab === "search";
+        document
+          .getElementById("tabSearch")
+          .classList.toggle("active", isSearch);
+        document
+          .getElementById("tabDirectCompare")
+          .classList.toggle("active", !isSearch);
+        document
+          .getElementById("panelSearch")
+          .classList.toggle("active", isSearch);
+        document
+          .getElementById("panelDirectCompare")
+          .classList.toggle("active", !isSearch);
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function normalizeName(s) {
+        return String(s || "")
+          .trim()
+          .replaceAll(" ", "")
+          .toLowerCase();
+      }
+
+      function getDays(student) {
+        const fromStudent = Object.keys(student?.schedule || {});
+        if (fromStudent.length) return fromStudent;
+        return DAYS;
+      }
+
+      function getMaxPeriods(student) {
+        const days = getDays(student);
+        const fromSchedule = days.map(
+          (d) => (student.schedule?.[d] || []).length,
+        );
+        const dynamicMax = fromSchedule.length ? Math.max(...fromSchedule) : 0;
+        return student.maxPeriods || dynamicMax || 7;
+      }
+
+      function findMatches(query) {
+        const q = normalizeName(query);
+        if (!q) return [];
+
+        const exact = allStudents.filter((st) => normalizeName(st.name) === q);
+        if (exact.length) return exact;
+
+        return allStudents.filter((st) => normalizeName(st.name).includes(q));
+      }
+
+      function studentLabel(st) {
+        return `${st.name} (${st.homeroom}-${st.number})`;
+      }
+
+      function slotKey(day, period) {
+        return `${day}__${period}`;
+      }
+
+      function buildTable(student, options = {}) {
+        const days = getDays(student);
+        const maxPeriods = getMaxPeriods(student);
+        const overlapKeys = options.overlapKeys || new Set();
+
+        let h = "<table><thead><tr><th>교시</th>";
+        for (const d of days) h += `<th>${escapeHtml(d)}</th>`;
+        h += "</tr></thead><tbody>";
+
+        for (let p = 0; p < maxPeriods; p++) {
+          h += `<tr><th>${p + 1}</th>`;
+          for (const d of days) {
+            const cell =
+              student.schedule?.[d] && student.schedule[d][p]
+                ? student.schedule[d][p]
+                : "";
+            const isOverlap = overlapKeys.has(slotKey(d, p));
+            h += `<td class="${isOverlap ? "cell-overlap" : ""}">${cell || ""}</td>`;
+          }
+          h += "</tr>";
+        }
+
+        h += "</tbody></table>";
+        return h;
+      }
+
+      function renderStudentCard(student) {
+        const meta = `
+          <div class="meta">
+            <div><b>${escapeHtml(student.name)}</b> (학번: ${student.studentId}, 반: ${escapeHtml(student.homeroom)}, 번호: ${student.number})</div>
+            <div class="small">최대 교시: ${student.maxPeriods ?? "-"}</div>
+          </div>
+        `;
+
+        return `
+          <div class="card">
+            ${meta}
+            <div class="actions">
+              <button id="btnFindSimilar">나와 가장 비슷한 시간표 찾기</button>
+            </div>
+            ${buildTable(student)}
+            <div id="similarResults"></div>
+          </div>
+        `;
+      }
+
+      function cleanText(text) {
+        return String(text || "")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&nbsp;/gi, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLowerCase();
+      }
+
+      function extractSlotSignature(cellHtml) {
+        const raw = String(cellHtml || "").trim();
+        if (!raw) return "";
+
+        const subject =
+          raw.match(
+            /class=["']subject-name["'][^>]*>([\s\S]*?)<\/div>/i,
+          )?.[1] || "";
+        const elective =
+          raw.match(
+            /class=["']elective-class-name["'][^>]*>([\s\S]*?)<\/span>/i,
+          )?.[1] || "";
+        const teacher =
+          raw.match(
+            /class=["']teacher-name["'][^>]*>([\s\S]*?)<\/span>/i,
+          )?.[1] || "";
+
+        const subjectText = cleanText(subject);
+        const electiveText = cleanText(elective);
+        const teacherText = cleanText(teacher);
+
+        if (subjectText || electiveText || teacherText) {
+          return `${subjectText}|${electiveText}|${teacherText}`;
+        }
+        return cleanText(raw);
+      }
+
+      function getSlotSignature(student, day, period) {
+        const cell = student.schedule?.[day]?.[period] || "";
+        return extractSlotSignature(cell);
+      }
+
+      function getOverlapKeys(baseStudent, targetStudent) {
+        const days = Array.from(
+          new Set([...getDays(baseStudent), ...getDays(targetStudent)]),
+        );
+        const maxPeriods = Math.max(
+          getMaxPeriods(baseStudent),
+          getMaxPeriods(targetStudent),
+        );
+        const keys = new Set();
+
+        for (const day of days) {
+          for (let p = 0; p < maxPeriods; p++) {
+            const a = getSlotSignature(baseStudent, day, p);
+            const b = getSlotSignature(targetStudent, day, p);
+            if (a && b && a === b) keys.add(slotKey(day, p));
+          }
+        }
+
+        return keys;
+      }
+
+      function calculateSimilarity(baseStudent, targetStudent) {
+        const days = Array.from(
+          new Set([...getDays(baseStudent), ...getDays(targetStudent)]),
+        );
+        const maxPeriods = Math.max(
+          getMaxPeriods(baseStudent),
+          getMaxPeriods(targetStudent),
+        );
+
+        let sameSlots = 0;
+        let comparableSlots = 0;
+
+        for (const day of days) {
+          for (let p = 0; p < maxPeriods; p++) {
+            const a = getSlotSignature(baseStudent, day, p);
+            const b = getSlotSignature(targetStudent, day, p);
+
+            if (!a && !b) continue;
+            comparableSlots += 1;
+            if (a && b && a === b) sameSlots += 1;
+          }
+        }
+
+        const score = comparableSlots ? sameSlots / comparableSlots : 0;
+        return { score, sameSlots, comparableSlots };
+      }
+
+      function findMostSimilarStudents(
+        baseStudent,
+        limit = 5,
+        excludeSameHomeroom = false,
+      ) {
+        return allStudents
+          .filter((st) => st.__uid !== baseStudent.__uid)
+          .filter((st) =>
+            excludeSameHomeroom
+              ? String(st.homeroom) !== String(baseStudent.homeroom)
+              : true,
+          )
+          .map((st) => ({
+            student: st,
+            ...calculateSimilarity(baseStudent, st),
+          }))
+          .sort((a, b) => b.score - a.score || b.sameSlots - a.sameSlots)
+          .slice(0, limit);
+      }
+
+      function renderSimilarSection(title, similar) {
+        let html = `<div class='card'><b>${escapeHtml(title)}</b>`;
+        html +=
+          "<div class='small'>점수 = 같은 수업 칸 수 / 비교 가능한 칸 수</div>";
+
+        if (!similar.length) {
+          html +=
+            "<div class='small' style='margin-top:8px;'>결과가 없습니다.</div>";
+          html += "</div>";
+          return html;
+        }
+
+        for (const item of similar) {
+          const st = item.student;
+          const ratio = (item.score * 100).toFixed(1);
+
+          html += `
+            <div class="similar-item">
+              <div>
+                <button class="name-link-btn" data-student-uid="${st.__uid}" type="button">${escapeHtml(st.name)}</button>
+                (${escapeHtml(st.homeroom)}-${st.number})
+              </div>
+              <div class="small">
+                유사도: ${ratio}% (${item.sameSlots}/${item.comparableSlots})
+              </div>
+            </div>
+          `;
+        }
+
+        html += "</div>";
+        return html;
+      }
+
+      function renderSimilarList(baseStudent) {
+        const includingSameHomeroom = findMostSimilarStudents(
+          baseStudent,
+          5,
+          false,
+        );
+        const excludingSameHomeroom = findMostSimilarStudents(
+          baseStudent,
+          5,
+          true,
+        );
+
+        let html = "";
+        html += renderSimilarSection(
+          "같은 반 포함 TOP 5",
+          includingSameHomeroom,
+        );
+        html += renderSimilarSection(
+          "같은 반 제외 TOP 5",
+          excludingSameHomeroom,
+        );
+        html += "<div id='compareView'></div>";
+        return html;
+      }
+
+      function renderCompareView(baseStudent, targetStudent) {
+        const overlapKeys = getOverlapKeys(baseStudent, targetStudent);
+        const similarity = calculateSimilarity(baseStudent, targetStudent);
+        const ratio = (similarity.score * 100).toFixed(1);
+
+        let html = "<div class='card'>";
+        html += `<div><b>비교 결과: ${escapeHtml(baseStudent.name)} vs ${escapeHtml(targetStudent.name)}</b></div>`;
+        html += `<div class='small'>유사도: ${ratio}% (${similarity.sameSlots}/${similarity.comparableSlots})</div>`;
+        html += "<div class='small'>노란색 칸이 서로 겹치는 수업입니다.</div>";
+        html += "<div class='compare-grid' style='margin-top:10px;'>";
+        html += "<div>";
+        html += `<div class='meta'><b>${escapeHtml(baseStudent.name)}</b> (${escapeHtml(baseStudent.homeroom)}-${baseStudent.number})</div>`;
+        html += buildTable(baseStudent, { overlapKeys });
+        html += "</div>";
+        html += "<div>";
+        html += `<div class='meta'><b>${escapeHtml(targetStudent.name)}</b> (${escapeHtml(targetStudent.homeroom)}-${targetStudent.number})</div>`;
+        html += buildTable(targetStudent, { overlapKeys });
+        html += "</div>";
+        html += "</div></div>";
+        return html;
+      }
+
+      function bindSimilarClicks(baseStudent) {
+        const area = document.getElementById("similarResults");
+        if (!area) return;
+
+        area.querySelectorAll("button[data-student-uid]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const targetUid = String(btn.getAttribute("data-student-uid"));
+            const targetStudent = allStudents.find(
+              (st) => String(st.__uid) === targetUid,
+            );
+            if (!targetStudent) return;
+
+            const compare = area.querySelector("#compareView");
+            if (!compare) return;
+            compare.innerHTML = renderCompareView(baseStudent, targetStudent);
+            compare.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+      }
+
+      function renderDirectStatus() {
+        const status = document.getElementById("directStatus");
+        const left = selectedDirect.base
+          ? studentLabel(selectedDirect.base)
+          : "미선택";
+        const right = selectedDirect.target
+          ? studentLabel(selectedDirect.target)
+          : "미선택";
+        status.textContent = `선택 상태 - 나: ${left} / 상대: ${right}`;
+      }
+
+      function renderDirectPickerSide(side, matches) {
+        const title = side === "base" ? "내 이름 선택" : "상대 이름 선택";
+        let h = `<div class='card'><b>${title}</b><div class='list'>`;
+        matches.slice(0, 50).forEach((st) => {
+          h += `<button type="button" data-pick-side="${side}" data-pick-uid="${st.__uid}">${escapeHtml(studentLabel(st))}</button>`;
+        });
+        h += "</div><div class='small'>최대 50명까지 버튼 표시</div></div>";
+        return h;
+      }
+
+      function bindDirectPickerClicks() {
+        const picker = document.getElementById("directPicker");
+        picker.querySelectorAll("button[data-pick-uid]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const side = btn.getAttribute("data-pick-side");
+            const uid = String(btn.getAttribute("data-pick-uid"));
+            const picked = allStudents.find((st) => String(st.__uid) === uid);
+            if (!picked || (side !== "base" && side !== "target")) return;
+
+            selectedDirect[side] = picked;
+            if (side === "base")
+              document.getElementById("qBase").value = picked.name;
+            if (side === "target")
+              document.getElementById("qTarget").value = picked.name;
+
+            tryRenderDirectCompare();
+          });
+        });
+      }
+
+      function resolveDirectSide(side, query) {
+        const q = String(query || "").trim();
+        if (!q) return { state: "empty" };
+
+        const matches = findMatches(q);
+        if (!matches.length) return { state: "none" };
+        if (matches.length === 1)
+          return { state: "single", student: matches[0] };
+        return { state: "multi", matches };
+      }
+
+      function tryRenderDirectCompare() {
+        const picker = document.getElementById("directPicker");
+        const results = document.getElementById("directResults");
+        const baseQuery = document.getElementById("qBase").value;
+        const targetQuery = document.getElementById("qTarget").value;
+
+        const baseResolved = resolveDirectSide("base", baseQuery);
+        const targetResolved = resolveDirectSide("target", targetQuery);
+
+        if (baseResolved.state === "single")
+          selectedDirect.base = baseResolved.student;
+        if (targetResolved.state === "single")
+          selectedDirect.target = targetResolved.student;
+
+        let pickerHtml = "";
+        if (baseResolved.state === "multi") {
+          pickerHtml += renderDirectPickerSide("base", baseResolved.matches);
+        }
+        if (targetResolved.state === "multi") {
+          pickerHtml += renderDirectPickerSide(
+            "target",
+            targetResolved.matches,
+          );
+        }
+        picker.innerHTML = pickerHtml;
+        bindDirectPickerClicks();
+
+        if (baseResolved.state === "none" || targetResolved.state === "none") {
+          results.innerHTML =
+            "<div class='card'>입력한 이름을 찾지 못했습니다.</div>";
+          renderDirectStatus();
+          return;
+        }
+
+        if (
+          baseResolved.state === "multi" ||
+          targetResolved.state === "multi"
+        ) {
+          results.innerHTML =
+            "<div class='card'>동명이인이 있어 먼저 선택해 주세요.</div>";
+          renderDirectStatus();
+          return;
+        }
+
+        if (!selectedDirect.base || !selectedDirect.target) {
+          results.innerHTML =
+            "<div class='card'>비교할 두 사람을 모두 입력해 주세요.</div>";
+          renderDirectStatus();
+          return;
+        }
+
+        results.innerHTML = renderCompareView(
+          selectedDirect.base,
+          selectedDirect.target,
+        );
+        renderDirectStatus();
+      }
+
+      function renderSingleStudent(student) {
+        const results = document.getElementById("results");
+        results.innerHTML = renderStudentCard(student);
+
+        const btn = document.getElementById("btnFindSimilar");
+        btn?.addEventListener("click", () => {
+          const area = document.getElementById("similarResults");
+          area.innerHTML = renderSimilarList(student);
+          bindSimilarClicks(student);
+        });
+      }
+
+      function renderMatches(matches) {
+        const results = document.getElementById("results");
+        results.innerHTML = "";
+
+        if (!matches.length) {
+          results.innerHTML = "<div class='card'>검색 결과 없음</div>";
+          return;
+        }
+
+        if (matches.length === 1) {
+          renderSingleStudent(matches[0]);
+          return;
+        }
+
+        let list =
+          "<div class='card'><div><b>여러 명이 검색됨</b> (선택)</div><div class='list'>";
+
+        matches.slice(0, 50).forEach((st, idx) => {
+          list += `<button data-idx="${idx}">${escapeHtml(st.name)} / ${escapeHtml(st.homeroom)}-${st.number}</button>`;
+        });
+
+        list += "</div><div class='small'>최대 50명까지 버튼 표시</div></div>";
+        results.innerHTML = list;
+
+        results.querySelectorAll("button[data-idx]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const st = matches[Number(btn.getAttribute("data-idx"))];
+            renderSingleStudent(st);
+          });
+        });
+      }
+
+      function doSearch() {
+        const q = document.getElementById("q").value;
+        renderMatches(findMatches(q));
+      }
+
+      async function loadData() {
+        const status = document.getElementById("status");
+        status.textContent = "data.json 불러오는 중...";
+
+        try {
+          const res = await fetch("./data.json", { cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+          const rawStudents = await res.json();
+          allStudents = rawStudents.map((st, idx) => ({ ...st, __uid: idx }));
+          const firstDays = Object.keys(allStudents?.[0]?.schedule || {});
+          if (firstDays.length) DAYS = firstDays;
+
+          status.textContent = ``;
+        } catch (e) {
+          status.textContent = "data.json을 불러오지 못했습니다.";
+          console.error(e);
+        }
+      }
+
+      document
+        .getElementById("tabSearch")
+        .addEventListener("click", () => switchTab("search"));
+      document
+        .getElementById("tabDirectCompare")
+        .addEventListener("click", () => switchTab("direct"));
+
+      document.getElementById("btn").addEventListener("click", doSearch);
+      document.getElementById("q").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") doSearch();
+      });
+      document.getElementById("btnClear").addEventListener("click", () => {
+        document.getElementById("q").value = "";
+        document.getElementById("results").innerHTML = "";
+        document.getElementById("q").focus();
+      });
+
+      document
+        .getElementById("btnCompareDirect")
+        .addEventListener("click", tryRenderDirectCompare);
+      document.getElementById("qBase").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") tryRenderDirectCompare();
+      });
+      document.getElementById("qTarget").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") tryRenderDirectCompare();
+      });
+      document.getElementById("qBase").addEventListener("input", () => {
+        selectedDirect.base = null;
+        renderDirectStatus();
+      });
+      document.getElementById("qTarget").addEventListener("input", () => {
+        selectedDirect.target = null;
+        renderDirectStatus();
+      });
+      document
+        .getElementById("btnCompareClear")
+        .addEventListener("click", () => {
+          selectedDirect.base = null;
+          selectedDirect.target = null;
+          document.getElementById("qBase").value = "";
+          document.getElementById("qTarget").value = "";
+          document.getElementById("directPicker").innerHTML = "";
+          document.getElementById("directResults").innerHTML = "";
+          renderDirectStatus();
+          document.getElementById("qBase").focus();
+        });
+
+      loadData();
+      renderDirectStatus();
+    </script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
@@ -718,11 +718,24 @@
         if (targetResolved.state === "single")
           selectedDirect.target = targetResolved.student;
 
+        const canUsePickedBase =
+          baseResolved.state === "multi" &&
+          selectedDirect.base &&
+          baseResolved.matches.some(
+            (st) => String(st.__uid) === String(selectedDirect.base.__uid),
+          );
+        const canUsePickedTarget =
+          targetResolved.state === "multi" &&
+          selectedDirect.target &&
+          targetResolved.matches.some(
+            (st) => String(st.__uid) === String(selectedDirect.target.__uid),
+          );
+
         let pickerHtml = "";
-        if (baseResolved.state === "multi") {
+        if (baseResolved.state === "multi" && !canUsePickedBase) {
           pickerHtml += renderDirectPickerSide("base", baseResolved.matches);
         }
-        if (targetResolved.state === "multi") {
+        if (targetResolved.state === "multi" && !canUsePickedTarget) {
           pickerHtml += renderDirectPickerSide(
             "target",
             targetResolved.matches,
@@ -739,8 +752,8 @@
         }
 
         if (
-          baseResolved.state === "multi" ||
-          targetResolved.state === "multi"
+          (baseResolved.state === "multi" && !canUsePickedBase) ||
+          (targetResolved.state === "multi" && !canUsePickedTarget)
         ) {
           results.innerHTML =
             "<div class='card'>동명이인이 있어 먼저 선택해 주세요.</div>";
@@ -748,17 +761,23 @@
           return;
         }
 
-        if (!selectedDirect.base || !selectedDirect.target) {
+        const baseStudent =
+          baseResolved.state === "single" || canUsePickedBase
+            ? selectedDirect.base
+            : null;
+        const targetStudent =
+          targetResolved.state === "single" || canUsePickedTarget
+            ? selectedDirect.target
+            : null;
+
+        if (!baseStudent || !targetStudent) {
           results.innerHTML =
             "<div class='card'>비교할 두 사람을 모두 입력해 주세요.</div>";
           renderDirectStatus();
           return;
         }
 
-        results.innerHTML = renderCompareView(
-          selectedDirect.base,
-          selectedDirect.target,
-        );
+        results.innerHTML = renderCompareView(baseStudent, targetStudent);
         renderDirectStatus();
       }
 

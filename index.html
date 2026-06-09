@@ -15,7 +15,7 @@
         margin: 0;
         padding: 28px 18px;
         background: #ffffff;
-        color: #111827; /* 거의 검정 */
+        color: #111827;
       }
 
       h1 {
@@ -25,7 +25,6 @@
         letter-spacing: -0.2px;
       }
 
-      /* 전체 컨텐츠 폭 정리 */
       .tabs,
       .tab-panel {
         max-width: 1100px;
@@ -33,15 +32,15 @@
         margin-right: auto;
       }
 
-      /* Tabs */
       .tabs {
         display: flex;
         gap: 8px;
         margin-bottom: 14px;
         padding: 6px;
-        background: #f8fafc; /* 아주 옅은 회색 */
+        background: #f8fafc;
         border: 1px solid #e5e7eb;
         border-radius: 12px;
+        flex-wrap: wrap;
       }
 
       .tab-btn {
@@ -66,15 +65,14 @@
         border-color: #111827;
       }
 
-      /* Panels */
       .tab-panel {
         display: none;
       }
+
       .tab-panel.active {
         display: block;
       }
 
-      /* Row */
       .row {
         display: flex;
         gap: 10px;
@@ -82,7 +80,6 @@
         align-items: center;
       }
 
-      /* Inputs */
       input {
         padding: 11px 12px;
         font-size: 15px;
@@ -103,7 +100,6 @@
         box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.12);
       }
 
-      /* Buttons */
       button {
         padding: 11px 12px;
         font-size: 14px;
@@ -122,7 +118,6 @@
         transform: translateY(1px);
       }
 
-      /* hint/meta */
       .hint {
         color: #6b7280;
         margin-top: 10px;
@@ -143,7 +138,6 @@
         color: #6b7280;
       }
 
-      /* Card */
       .card {
         border: 1px solid #e5e7eb;
         border-radius: 14px;
@@ -157,12 +151,10 @@
         margin: 10px 0 12px;
       }
 
-      /* list buttons */
       .list button {
         margin: 6px 8px 0 0;
       }
 
-      /* Table */
       table {
         width: 100%;
         table-layout: fixed;
@@ -204,17 +196,14 @@
         color: #111827;
       }
 
-      /* hover로 가독성 */
       tbody tr:hover td {
         background: #fafafa;
       }
 
-      /* overlap 강조(노란색이 너무 튀지 않게) */
       .cell-overlap {
-        background: #fff7d6; /* 연한 크림 */
+        background: #fff7d6;
       }
 
-      /* subject/teacher */
       .subject-name {
         font-weight: 700;
       }
@@ -239,14 +228,12 @@
         color: #6b7280;
       }
 
-      /* Similar item separator */
       .similar-item {
         border-top: 1px dashed #e5e7eb;
         margin-top: 12px;
         padding-top: 12px;
       }
 
-      /* name link button */
       .name-link-btn {
         border: 0;
         background: transparent;
@@ -262,7 +249,6 @@
         color: #1d4ed8;
       }
 
-      /* Compare grid */
       .compare-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -274,8 +260,24 @@
           grid-template-columns: 1fr 1fr;
         }
       }
+
+      .subject-stats-table th:nth-child(1),
+      .subject-stats-table td:nth-child(1) {
+        width: 52px;
+      }
+
+      .subject-stats-table th:nth-child(3),
+      .subject-stats-table td:nth-child(3) {
+        width: 90px;
+      }
+
+      .student-list-cell {
+        word-break: keep-all;
+        line-height: 1.6;
+      }
     </style>
   </head>
+
   <body>
     <h1>시간표 검색</h1>
 
@@ -285,6 +287,9 @@
       </button>
       <button id="tabDirectCompare" class="tab-btn" type="button">
         직접 비교
+      </button>
+      <button id="tabSubjectStats" class="tab-btn" type="button">
+        과목별 수강자수
       </button>
     </div>
 
@@ -321,10 +326,31 @@
         <button id="btnCompareDirect">두 사람 비교</button>
         <button id="btnCompareClear">초기화</button>
       </div>
+
       <div class="hint">이름이 여러 명이면 선택 버튼이 나타납니다.</div>
       <div id="directStatus" class="hint"></div>
       <div id="directPicker" class="results"></div>
       <div id="directResults" class="results"></div>
+    </section>
+
+    <section id="panelSubjectStats" class="tab-panel">
+      <div class="row">
+        <input
+          id="qSubject"
+          type="text"
+          placeholder="과목명, 선택반, 교사명 검색"
+          autocomplete="off"
+        />
+        <button id="btnSubjectSearch">검색</button>
+        <button id="btnSubjectClear">초기화</button>
+      </div>
+
+      <div class="hint">
+        과목명 + 선택반 + 교사 기준으로 같은 수업을 묶어 수강자수를 보여줍니다.
+        같은 학생이 같은 수업을 여러 번 들어도 1명으로 계산합니다.
+      </div>
+
+      <div id="subjectStatsResults" class="results"></div>
     </section>
 
     <script>
@@ -334,18 +360,30 @@
 
       function switchTab(tab) {
         const isSearch = tab === "search";
+        const isDirect = tab === "direct";
+        const isSubjectStats = tab === "subjectStats";
+
         document
           .getElementById("tabSearch")
           .classList.toggle("active", isSearch);
         document
           .getElementById("tabDirectCompare")
-          .classList.toggle("active", !isSearch);
+          .classList.toggle("active", isDirect);
+        document
+          .getElementById("tabSubjectStats")
+          .classList.toggle("active", isSubjectStats);
+
         document
           .getElementById("panelSearch")
           .classList.toggle("active", isSearch);
         document
           .getElementById("panelDirectCompare")
-          .classList.toggle("active", !isSearch);
+          .classList.toggle("active", isDirect);
+        document
+          .getElementById("panelSubjectStats")
+          .classList.toggle("active", isSubjectStats);
+
+        if (isSubjectStats) renderSubjectStats();
       }
 
       function escapeHtml(s) {
@@ -476,7 +514,181 @@
         if (subjectText || electiveText || teacherText) {
           return `${subjectText}|${electiveText}|${teacherText}`;
         }
+
         return cleanText(raw);
+      }
+
+      function extractSubjectInfo(cellHtml) {
+        const raw = String(cellHtml || "").trim();
+        if (!raw) return null;
+
+        const subject =
+          raw.match(
+            /class=["']subject-name["'][^>]*>([\s\S]*?)<\/div>/i,
+          )?.[1] || "";
+
+        const elective =
+          raw.match(
+            /class=["']elective-class-name["'][^>]*>([\s\S]*?)<\/span>/i,
+          )?.[1] || "";
+
+        const teacher =
+          raw.match(
+            /class=["']teacher-name["'][^>]*>([\s\S]*?)<\/span>/i,
+          )?.[1] || "";
+
+        const subjectText = cleanText(subject);
+        const electiveText = cleanText(elective);
+        const teacherText = cleanText(teacher);
+
+        if (!subjectText && !electiveText && !teacherText) {
+          const fallback = cleanText(raw);
+          if (!fallback) return null;
+
+          return {
+            subject: fallback,
+            elective: "",
+            teacher: "",
+            label: fallback,
+            searchText: fallback,
+          };
+        }
+
+        const labelParts = [];
+        if (subjectText) labelParts.push(subjectText);
+        if (electiveText) labelParts.push(electiveText);
+        if (teacherText) labelParts.push(teacherText);
+
+        return {
+          subject: subjectText,
+          elective: electiveText,
+          teacher: teacherText,
+          label: labelParts.join(" / "),
+          searchText: labelParts.join(" "),
+        };
+      }
+
+      function buildSubjectStats() {
+        const map = new Map();
+
+        for (const student of allStudents) {
+          const seenByStudent = new Set();
+          const days = getDays(student);
+          const maxPeriods = getMaxPeriods(student);
+
+          for (const day of days) {
+            for (let p = 0; p < maxPeriods; p++) {
+              const cell = student.schedule?.[day]?.[p] || "";
+              const info = extractSubjectInfo(cell);
+              if (!info) continue;
+
+              const key = info.label;
+
+              if (seenByStudent.has(key)) continue;
+              seenByStudent.add(key);
+
+              if (!map.has(key)) {
+                map.set(key, {
+                  ...info,
+                  count: 0,
+                  students: [],
+                });
+              }
+
+              const item = map.get(key);
+              item.count += 1;
+              item.students.push(student);
+            }
+          }
+        }
+
+        return Array.from(map.values()).sort((a, b) => {
+          return b.count - a.count || a.label.localeCompare(b.label, "ko");
+        });
+      }
+
+      function renderSubjectStats() {
+        const area = document.getElementById("subjectStatsResults");
+        if (!area) return;
+
+        const query = normalizeName(
+          document.getElementById("qSubject")?.value || "",
+        );
+
+        let stats = buildSubjectStats();
+
+        if (query) {
+          stats = stats.filter((item) =>
+            normalizeName(item.searchText).includes(query),
+          );
+        }
+
+        if (!allStudents.length) {
+          area.innerHTML =
+            "<div class='card'>아직 data.json을 불러오는 중이거나 데이터가 없습니다.</div>";
+          return;
+        }
+
+        if (!stats.length) {
+          area.innerHTML = "<div class='card'>검색 결과가 없습니다.</div>";
+          return;
+        }
+
+        let html = "<div class='card'>";
+        html += `
+          <div class="meta">
+            <b>과목별 수강자수</b>
+            <span class="small">총 ${stats.length}개 수업</span>
+          </div>
+        `;
+
+        html += `
+          <table class="subject-stats-table">
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>과목 / 선택반 / 교사</th>
+                <th>수강자수</th>
+                <th>수강 학생</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        stats.forEach((item, idx) => {
+          const studentNames = item.students
+            .map(
+              (st) =>
+                `${escapeHtml(st.name)}(${escapeHtml(st.homeroom)}-${st.number})`,
+            )
+            .join(", ");
+
+          html += `
+            <tr>
+              <td>${idx + 1}</td>
+              <td>
+                <div class="subject-name">${escapeHtml(item.subject || "-")}</div>
+                <div class="details">
+                  ${
+                    item.elective
+                      ? `<span class="location-chip">${escapeHtml(item.elective)}</span>`
+                      : ""
+                  }
+                  ${
+                    item.teacher
+                      ? `<span class="teacher-name">${escapeHtml(item.teacher)}</span>`
+                      : ""
+                  }
+                </div>
+              </td>
+              <td><b>${item.count}</b>명</td>
+              <td class="small student-list-cell">${studentNames}</td>
+            </tr>
+          `;
+        });
+
+        html += "</tbody></table></div>";
+        area.innerHTML = html;
       }
 
       function getSlotSignature(student, day, period) {
@@ -620,14 +832,17 @@
         html += `<div class='small'>유사도: ${ratio}% (${similarity.sameSlots}/${similarity.comparableSlots})</div>`;
         html += "<div class='small'>노란색 칸이 서로 겹치는 수업입니다.</div>";
         html += "<div class='compare-grid' style='margin-top:10px;'>";
+
         html += "<div>";
         html += `<div class='meta'><b>${escapeHtml(baseStudent.name)}</b> (${escapeHtml(baseStudent.homeroom)}-${baseStudent.number})</div>`;
         html += buildTable(baseStudent, { overlapKeys });
         html += "</div>";
+
         html += "<div>";
         html += `<div class='meta'><b>${escapeHtml(targetStudent.name)}</b> (${escapeHtml(targetStudent.homeroom)}-${targetStudent.number})</div>`;
         html += buildTable(targetStudent, { overlapKeys });
         html += "</div>";
+
         html += "</div></div>";
         return html;
       }
@@ -646,6 +861,7 @@
 
             const compare = area.querySelector("#compareView");
             if (!compare) return;
+
             compare.innerHTML = renderCompareView(baseStudent, targetStudent);
             compare.scrollIntoView({ behavior: "smooth", block: "start" });
           });
@@ -666,27 +882,35 @@
       function renderDirectPickerSide(side, matches) {
         const title = side === "base" ? "내 이름 선택" : "상대 이름 선택";
         let h = `<div class='card'><b>${title}</b><div class='list'>`;
+
         matches.slice(0, 50).forEach((st) => {
           h += `<button type="button" data-pick-side="${side}" data-pick-uid="${st.__uid}">${escapeHtml(studentLabel(st))}</button>`;
         });
+
         h += "</div><div class='small'>최대 50명까지 버튼 표시</div></div>";
         return h;
       }
 
       function bindDirectPickerClicks() {
         const picker = document.getElementById("directPicker");
+
         picker.querySelectorAll("button[data-pick-uid]").forEach((btn) => {
           btn.addEventListener("click", () => {
             const side = btn.getAttribute("data-pick-side");
             const uid = String(btn.getAttribute("data-pick-uid"));
             const picked = allStudents.find((st) => String(st.__uid) === uid);
+
             if (!picked || (side !== "base" && side !== "target")) return;
 
             selectedDirect[side] = picked;
-            if (side === "base")
+
+            if (side === "base") {
               document.getElementById("qBase").value = picked.name;
-            if (side === "target")
+            }
+
+            if (side === "target") {
               document.getElementById("qTarget").value = picked.name;
+            }
 
             tryRenderDirectCompare();
           });
@@ -698,9 +922,12 @@
         if (!q) return { state: "empty" };
 
         const matches = findMatches(q);
+
         if (!matches.length) return { state: "none" };
-        if (matches.length === 1)
+        if (matches.length === 1) {
           return { state: "single", student: matches[0] };
+        }
+
         return { state: "multi", matches };
       }
 
@@ -713,10 +940,13 @@
         const baseResolved = resolveDirectSide("base", baseQuery);
         const targetResolved = resolveDirectSide("target", targetQuery);
 
-        if (baseResolved.state === "single")
+        if (baseResolved.state === "single") {
           selectedDirect.base = baseResolved.student;
-        if (targetResolved.state === "single")
+        }
+
+        if (targetResolved.state === "single") {
           selectedDirect.target = targetResolved.student;
+        }
 
         const canUsePickedBase =
           baseResolved.state === "multi" &&
@@ -724,6 +954,7 @@
           baseResolved.matches.some(
             (st) => String(st.__uid) === String(selectedDirect.base.__uid),
           );
+
         const canUsePickedTarget =
           targetResolved.state === "multi" &&
           selectedDirect.target &&
@@ -732,15 +963,18 @@
           );
 
         let pickerHtml = "";
+
         if (baseResolved.state === "multi" && !canUsePickedBase) {
           pickerHtml += renderDirectPickerSide("base", baseResolved.matches);
         }
+
         if (targetResolved.state === "multi" && !canUsePickedTarget) {
           pickerHtml += renderDirectPickerSide(
             "target",
             targetResolved.matches,
           );
         }
+
         picker.innerHTML = pickerHtml;
         bindDirectPickerClicks();
 
@@ -757,7 +991,7 @@
         ) {
           results.innerHTML =
             "<div class='card'>동명이인이 있어 먼저 선택해 주세요.</div>";
-          renderDirectStatus(); // 이 부분이 왜 버그가 나는 지 나는 모르겠다 ~
+          renderDirectStatus();
           return;
         }
 
@@ -765,6 +999,7 @@
           baseResolved.state === "single" || canUsePickedBase
             ? selectedDirect.base
             : null;
+
         const targetStudent =
           targetResolved.state === "single" || canUsePickedTarget
             ? selectedDirect.target
@@ -786,6 +1021,7 @@
         results.innerHTML = renderStudentCard(student);
 
         const btn = document.getElementById("btnFindSimilar");
+
         btn?.addEventListener("click", () => {
           const area = document.getElementById("similarResults");
           area.innerHTML = renderSimilarList(student);
@@ -840,10 +1076,11 @@
 
           const rawStudents = await res.json();
           allStudents = rawStudents.map((st, idx) => ({ ...st, __uid: idx }));
+
           const firstDays = Object.keys(allStudents?.[0]?.schedule || {});
           if (firstDays.length) DAYS = firstDays;
 
-          status.textContent = ``;
+          status.textContent = "";
         } catch (e) {
           status.textContent = "data.json을 불러오지 못했습니다.";
           console.error(e);
@@ -853,14 +1090,21 @@
       document
         .getElementById("tabSearch")
         .addEventListener("click", () => switchTab("search"));
+
       document
         .getElementById("tabDirectCompare")
         .addEventListener("click", () => switchTab("direct"));
 
+      document
+        .getElementById("tabSubjectStats")
+        .addEventListener("click", () => switchTab("subjectStats"));
+
       document.getElementById("btn").addEventListener("click", doSearch);
+
       document.getElementById("q").addEventListener("keydown", (e) => {
         if (e.key === "Enter") doSearch();
       });
+
       document.getElementById("btnClear").addEventListener("click", () => {
         document.getElementById("q").value = "";
         document.getElementById("results").innerHTML = "";
@@ -870,20 +1114,25 @@
       document
         .getElementById("btnCompareDirect")
         .addEventListener("click", tryRenderDirectCompare);
+
       document.getElementById("qBase").addEventListener("keydown", (e) => {
         if (e.key === "Enter") tryRenderDirectCompare();
       });
+
       document.getElementById("qTarget").addEventListener("keydown", (e) => {
         if (e.key === "Enter") tryRenderDirectCompare();
       });
+
       document.getElementById("qBase").addEventListener("input", () => {
         selectedDirect.base = null;
         renderDirectStatus();
       });
+
       document.getElementById("qTarget").addEventListener("input", () => {
         selectedDirect.target = null;
         renderDirectStatus();
       });
+
       document
         .getElementById("btnCompareClear")
         .addEventListener("click", () => {
@@ -895,6 +1144,22 @@
           document.getElementById("directResults").innerHTML = "";
           renderDirectStatus();
           document.getElementById("qBase").focus();
+        });
+
+      document
+        .getElementById("btnSubjectSearch")
+        .addEventListener("click", renderSubjectStats);
+
+      document.getElementById("qSubject").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") renderSubjectStats();
+      });
+
+      document
+        .getElementById("btnSubjectClear")
+        .addEventListener("click", () => {
+          document.getElementById("qSubject").value = "";
+          renderSubjectStats();
+          document.getElementById("qSubject").focus();
         });
 
       loadData();
